@@ -9,10 +9,13 @@ const io = new Server(httpServer);
 
 const TICK_RATE = 30;
 const SPEED = 5;
+const SNOWBALL_SPEED = 7;
+
 let players = [];
+let snowballs = [];
 let inputsMap = {};
 
-const tick = () => {
+const tick = (delta) => {
   for (const player of players) {
     const input = inputsMap[player.id];
     console.log(player, input)
@@ -28,7 +31,31 @@ const tick = () => {
       player.x -= SPEED;
   }
 
+  for (const snowball of snowballs) {
+    snowball.x += Math.cos(snowball.angle) * SNOWBALL_SPEED;
+    snowball.y += Math.sin(snowball.angle) * SNOWBALL_SPEED;
+    snowball.timeLeft -= delta;
+
+    for (const player of players) {
+      if (player.id === snowball.playerId) continue;
+
+      const distance = Math.sqrt(
+        (player.x + 8 - snowball.x) ** 2 + (player.y + 8 - snowball.y) ** 2
+      );
+
+      if (distance <= 8) {
+        player.x = 0;
+        player.y = 0; 
+        snowball.timeLeft = 0;
+        break;
+      }
+    }
+  }
+
+  snowballs = snowballs.filter((snowball) => snowball.timeLeft > 0);
+
   io.emit("players", players);
+  io.emit("snowballs", snowballs)
 }
 
 const main = async () => {
@@ -55,6 +82,18 @@ const main = async () => {
     socket.on("inputs", (inputs) => {
       inputsMap[socket.id] = inputs;
     });
+    
+    socket.on("snowballs", (angle) => {
+      const player = players.find((player) => player.id === socket.id);
+
+      snowballs.push({
+        angle,
+        x: player.x,
+        y: player.y,
+        timeLeft: 1000,
+        playerId: socket.id,
+      });
+    });
 
     socket.on("disconnect", () => {
       players = players.filter((player) => {
@@ -68,7 +107,13 @@ const main = async () => {
   app.use(express.static("public"));
   httpServer.listen(3000);
 
-  setInterval(tick, 1000 / TICK_RATE);
+  let lastUpdate = Date.now();
+  setInterval(() => {
+    const now = Date.now();
+    const delta = now - lastUpdate;
+    tick(delta);
+    lastUpdate = now;
+  }, 1000 / TICK_RATE);
 }
 
 main()
