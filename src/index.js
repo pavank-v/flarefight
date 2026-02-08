@@ -8,27 +8,71 @@ const httpServer = createServer(app);
 const io = new Server(httpServer);
 
 const TICK_RATE = 30;
-const SPEED = 5;
-const SNOWBALL_SPEED = 7;
+const PLAYER_SPEED = 11;
+const SNOWBALL_SPEED = 15;
+const PLAYER_SIZE = 32;
+const TILE_SIZE = 32;
 
 let players = [];
 let snowballs = [];
 let inputsMap = {};
+let ground2D, decal2D;
+
+const isColliding = (rect1, rect2) => {
+  return (
+    rect1.x < rect2.x + rect2.w &&
+    rect1.x + rect1.w > rect2.x &&
+    rect1.y < rect2.y + rect2.h &&
+    rect1.h + rect1.y > rect2.y
+  );
+};
+
+const isCollidingWithObjects = (player) => {
+	for (let r = 0; r < decal2D.length; r++) {
+		for (let c = 0; c < decal2D[0].length; c++) {
+      const decalTile = decal2D[r][c] ?? undefined;
+
+      if (decalTile && isColliding(
+        {
+          x: player.x,
+          y: player.y,
+          h: PLAYER_SIZE,
+          w: PLAYER_SIZE,
+        },
+        {
+          x: c * TILE_SIZE,
+          y: r * TILE_SIZE,
+          h: TILE_SIZE,
+          w: TILE_SIZE,
+        }
+      ))
+        return true;
+    }
+	}
+  return false;
+};
 
 const tick = (delta) => {
   for (const player of players) {
     const input = inputsMap[player.id];
-    console.log(player, input)
+    const previousX = player.x;
+    const previousY = player.y;
 
     if (input.up)
-      player.y -= SPEED;
+      player.y -= PLAYER_SPEED;
     else if(input.down)
-      player.y += SPEED;
+      player.y += PLAYER_SPEED;
+
+    if (isCollidingWithObjects(player))
+      player.y = previousY
 
     if(input.right)
-      player.x += SPEED;
+      player.x += PLAYER_SPEED;
     else if(input.left)
-      player.x -= SPEED;
+      player.x -= PLAYER_SPEED;
+
+    if (isCollidingWithObjects(player))
+      player.x = previousX
   }
 
   for (const snowball of snowballs) {
@@ -40,10 +84,11 @@ const tick = (delta) => {
       if (player.id === snowball.playerId) continue;
 
       const distance = Math.sqrt(
-        (player.x + 8 - snowball.x) ** 2 + (player.y + 8 - snowball.y) ** 2
+        ((player.x + PLAYER_SIZE / 2 - snowball.x) ** 2) +
+        ((player.y + PLAYER_SIZE / 2 - snowball.y) ** 2)
       );
 
-      if (distance <= 8) {
+      if (distance <= PLAYER_SIZE / 2) {
         player.x = 0;
         player.y = 0; 
         snowball.timeLeft = 0;
@@ -59,7 +104,7 @@ const tick = (delta) => {
 }
 
 const main = async () => {
-  const map2D = await LoadMap();
+  ({ground2D, decal2D} = await LoadMap());
 
   io.on("connect", (socket) => {
     console.log("user connected", socket.id);
@@ -73,14 +118,22 @@ const main = async () => {
 
     players.push({
       id: socket.id,
-      x: 0,
-      y: 0,
+      x: 400,
+      y: 400,
     });
 
-    socket.emit("map", map2D);
+    socket.emit("map",{
+        ground: ground2D,
+        decal: decal2D,
+    });
 
     socket.on("inputs", (inputs) => {
       inputsMap[socket.id] = inputs;
+    });
+
+    socket.on("mute", (isMuted) => {
+      const player = players.find((player) => player.id == socket.id);
+      player.isMuted = isMuted;
     });
     
     socket.on("snowballs", (angle) => {
@@ -88,8 +141,8 @@ const main = async () => {
 
       snowballs.push({
         angle,
-        x: player.x,
-        y: player.y,
+        x: player.x ?? 0,
+        y: player.y ?? 0,
         timeLeft: 1000,
         playerId: socket.id,
       });
@@ -100,7 +153,6 @@ const main = async () => {
         player.id != socket.id;
       })
     })
-
   });
 
   console.log("players: ", players)
@@ -116,4 +168,4 @@ const main = async () => {
   }, 1000 / TICK_RATE);
 }
 
-main()
+main();

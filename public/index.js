@@ -1,8 +1,11 @@
 const mapImage = new Image();
 const santaImage = new Image();
+const speakerImage = new Image();
+const footStepAudio = new Audio("walking_sound.mp3");
 
 mapImage.src = "./snowy-sheet.png";
 santaImage.src = "./santa.png";
+speakerImage.src = "./speaker.png";
 
 const canvasEle = document.getElementById("canvas");
 canvasEle.width = window.innerWidth;
@@ -12,18 +15,50 @@ const canvas = canvasEle.getContext('2d');
 const socket = io("ws://localhost:3000");
 
 const TILES_IN_ROW = 8;
-const TILE_SIZE = 16;
+const TILE_SIZE = 32;
+const PROJECTILE_RADIUS = 5;
 
-let map = [[]];
+let groundMap = [[]];
+let decalMap = [[]];
 let players = [];
 let snowballs = [];
+let isPlaying = true;
+
+const inputs = {
+	up: false,
+	down: false,
+	right: false,
+	left: false
+};
+
+const inputKeys = [
+	'a', 's', 'w', 'd', 
+	'ArrowLeft', 'ArrowDown', 'ArrowUp', 'ArrowRight'
+];
+
+const options = {
+	appid: "0f53835609414874a7cbfe9d28e0f1be",
+	channel: "game",
+	uid: null,
+	token: null,
+};
+
+const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+const localTracks = {
+	audioTrack: null,
+};
+
+const remoteUsers = {};
+const muteButton = document.getElementById("mute");
 
 socket.on("connect", () => {
 	console.log("connected")
 })
 
 socket.on("map", (loadedMap) => {
-	map = loadedMap;
+	groundMap = loadedMap.ground;
+	decalMap = loadedMap.decal;
 });
 
 socket.on("players", (serverPlayers) => {
@@ -34,12 +69,54 @@ socket.on("snowballs", (serverSnowballs) => {
 	snowballs = serverSnowballs;
 });
 
-const inputs = {
-	up: false,
-	down: false,
-	right: false,
-	left: false
-};
+
+async function subscribe(user, mediaType) {
+  await client.subscribe(user, mediaType);
+  if (mediaType === "audio") {
+    user.audioTrack.play();
+  }
+}
+
+function handleUserPublished(user, mediaType) {
+  const id = user.uid;
+  remoteUsers[id] = user;
+  subscribe(user, mediaType);
+}
+
+function handleUserUnpublished(user) {
+  const id = user.uid;
+  delete remoteUsers[id];
+}
+
+async function join() {
+  client.on("user-published", handleUserPublished);
+  client.on("user-unpublished", handleUserUnpublished);
+
+	[options.uid, localTracks.audioTrack] = await Promise.all([
+		client.join(options.appid, options.channel, options.token || null),
+		AgoraRTC.createMicrophoneAudioTrack(),
+	]);
+
+  await client.publish(Object.values(localTracks));
+	console.log("Publish success")
+}
+
+join();
+
+muteButton.addEventListener("click", () => {
+	if (isPlaying) {
+		localTracks.audioTrack.setEnabled(false);
+		muteButton.innerText = "unmute";
+		socket.emit("mute", true);
+	}
+	else {
+		localTracks.audioTrack.setEnabled(true);
+		muteButton.innerText = "mute";
+		socket.emit("mute", false);
+	}
+
+	isPlaying = !isPlaying;
+});
 
 window.addEventListener("keydown", (e) => {
 	if (e.key === 'a' || e.key === "ArrowLeft")
@@ -50,6 +127,11 @@ window.addEventListener("keydown", (e) => {
 		inputs["up"] = true;
 	else if (e.key === 'd' || e.key === "ArrowRight")
 		inputs["right"] = true;
+
+	if (inputKeys.includes(e.key)) {
+		footStepAudio.play()
+		footStepAudio.currentTime = 0;
+	}
 
 	socket.emit("inputs", inputs);
 });
@@ -63,6 +145,9 @@ window.addEventListener("keyup", (e) => {
 		inputs["up"] = false;
 	else if (e.key === 'd' || e.key === "ArrowRight")
 		inputs["right"] = false;
+
+	if (inputKeys.includes(e.key))
+		footStepAudio.pause()
 
 	socket.emit("inputs", inputs);
 });
@@ -87,10 +172,31 @@ const loop = () => {
 		cameraY = parseInt(myPlayer.y - canvasEle.height / 2);
 	}
 
+	for (let r = 0; r < groundMap.length; r++) {
+		for (let c = 0; c < groundMap[0].length; c++) {
+			const { id } = groundMap[r][c];
+			const imageRow = parseInt(id / TILES_IN_ROW);
+			const imageCol = id % TILES_IN_ROW;
 
-	for (let r = 0; r < map.length; r++) {
-		for (let c = 0; c < map[0].length; c++) {
-			const { id } = map[r][c];
+			canvas.drawImage(
+				mapImage,
+				imageCol * TILE_SIZE,
+				imageRow * TILE_SIZE,
+				TILE_SIZE,
+				TILE_SIZE,
+				c * TILE_SIZE - cameraX,
+				r * TILE_SIZE - cameraY,
+				TILE_SIZE,
+				TILE_SIZE
+			);
+		}
+	}
+
+	for (let r = 0; r < decalMap.length; r++) {
+		for (let c = 0; c < decalMap[0].length; c++) {
+			const { id } = decalMap[r][c] ?? 0;
+			if (!id) continue;
+
 			const imageRow = parseInt(id / TILES_IN_ROW);
 			const imageCol = id % TILES_IN_ROW;
 
@@ -110,6 +216,8 @@ const loop = () => {
 
 	for (const player of players) {
 		canvas.drawImage(santaImage, player.x - cameraX, player.y - cameraY);
+		if (!player.isMuted)
+			canvas.drawImage(speakerImage, player.x - cameraX + 5, player.y - cameraY - 28);
 	}
 
 	for (const snowball of snowballs) {
@@ -118,7 +226,7 @@ const loop = () => {
 		canvas.arc(
 			snowball.x - cameraX,
 			snowball.y - cameraY,
-			3,
+			PROJECTILE_RADIUS,
 			0,
 			2 * Math.PI
 		);

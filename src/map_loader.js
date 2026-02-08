@@ -9,18 +9,35 @@ const loadMap = async () => {
     });
     
     const layer = map.layers[0];
-    const tiles = layer.tiles;
-    const map2D = new Array(map.height).fill('').map(() => new Array(map.width));
+    const groundTiles = layer.tiles;
+    const decalTiles = map.layers[1].tiles;
+    const ground2D = [];
+    const decal2D = [];
     
     for (let r = 0; r < map.height; r++) {
+        const groundRow = [];
+        const decalRow = [];
+
         for (let c = 0; c < map.width; c++) {
-            const tile = tiles[r * map.width + c];
-            map2D[r][c] = { id: tile.id, gid: tile.gid };
+            const groundTile = groundTiles[r * map.width + c];
+            groundRow.push({ id: groundTile.id, gid: groundTile.gid });
+            const decalTile = decalTiles[r * map.width + c];
+
+            if (decalTile) {
+                decalRow.push({
+                    id: decalTile.id,
+                    gid: decalTile.gid
+                });
+            } else {
+                decalRow.push(undefined);
+            }
         }
 
+        ground2D.push(groundRow);
+        decal2D.push(decalRow);
     }
 
-    return map2D;
+    return {ground2D, decal2D}
 }
 
 module.exports = loadMap;
