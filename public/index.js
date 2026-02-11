@@ -36,10 +36,12 @@ const inputKeys = [
 	'ArrowLeft', 'ArrowDown', 'ArrowUp', 'ArrowRight'
 ];
 
+const uid = Math.floor(Math.random() * 100000);
+
 const options = {
 	appid: "0f53835609414874a7cbfe9d28e0f1be",
 	channel: "game",
-	uid: null,
+	uid,
 	token: null,
 };
 
@@ -89,11 +91,13 @@ function handleUserUnpublished(user) {
 }
 
 async function join() {
+	socket.emit("voiceId", uid);
+
   client.on("user-published", handleUserPublished);
   client.on("user-unpublished", handleUserUnpublished);
 
 	[options.uid, localTracks.audioTrack] = await Promise.all([
-		client.join(options.appid, options.channel, options.token || null),
+		client.join(options.appid, options.channel, options.token || null, uid),
 		AgoraRTC.createMicrophoneAudioTrack(),
 	]);
 
@@ -216,8 +220,24 @@ const loop = () => {
 
 	for (const player of players) {
 		canvas.drawImage(santaImage, player.x - cameraX, player.y - cameraY);
-		if (!player.isMuted)
+
+		if (!player.isMuted) {
 			canvas.drawImage(speakerImage, player.x - cameraX + 5, player.y - cameraY - 28);
+		}
+		
+		if (player !== myPlayer) {
+			const voice = remoteUsers[player.voiceId];
+
+			if (voice && voice.audioTrack) {
+				const distance = Math.sqrt(
+					(player.x - myPlayer.x) ** 2 + (player.y - myPlayer.y) ** 2
+				);
+				const ratio = 1.0 - Math.floor(distance / 700, 1);
+				voice.audioTrack.setVolume(
+					Math.floor(ratio * 100)
+				);
+			}
+		}
 	}
 
 	for (const snowball of snowballs) {

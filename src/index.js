@@ -118,6 +118,7 @@ const main = async () => {
 
     players.push({
       id: socket.id,
+      voiceId: Math.floor(Math.random() * 1000000),
       x: 400,
       y: 400,
     });
@@ -134,6 +135,11 @@ const main = async () => {
     socket.on("mute", (isMuted) => {
       const player = players.find((player) => player.id == socket.id);
       player.isMuted = isMuted;
+    });
+    
+    socket.on("voiceId", (voiceId) => {
+      const player = players.find((player) => player.id == socket.id);
+      player.voiceId = voiceId;
     });
     
     socket.on("snowballs", (angle) => {
