@@ -16,12 +16,40 @@
     canvas {
       display: block;
     }
+
+    #mute {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+
+      padding: 6px 14px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+
+      background-color: #222;
+      color: #fff;
+
+      border: 3px solid #fff;
+      border-radius: 4px;
+
+      cursor: pointer;
+      image-rendering: pixelated;
+      transition: 0.15s;
+    }
+
+    #mute:hover {
+      background-color: #444;
+    }
+
+    #mute:active {
+      background-color: #666;
+    }
   </style>
 </head>
 
 <body>
   <canvas id="canvas"></canvas>
-  <button id="mute" style="position: absolute; top: 5px; left: 5px;">mute</button>
+  <button id="mute">MUTE</button>
   <script src="agora.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="/index.js"></script>

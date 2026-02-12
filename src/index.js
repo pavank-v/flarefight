@@ -9,12 +9,12 @@ const io = new Server(httpServer);
 
 const TICK_RATE = 30;
 const PLAYER_SPEED = 11;
-const SNOWBALL_SPEED = 15;
+const PROJECTILE_SPEED = 15;
 const PLAYER_SIZE = 32;
 const TILE_SIZE = 32;
 
 let players = [];
-let snowballs = [];
+let projectiles = [];
 let inputsMap = {};
 let ground2D, decal2D;
 
@@ -75,32 +75,32 @@ const tick = (delta) => {
       player.x = previousX
   }
 
-  for (const snowball of snowballs) {
-    snowball.x += Math.cos(snowball.angle) * SNOWBALL_SPEED;
-    snowball.y += Math.sin(snowball.angle) * SNOWBALL_SPEED;
-    snowball.timeLeft -= delta;
+  for (const projectile of projectiles) {
+    projectile.x += Math.cos(projectile.angle) * PROJECTILE_SPEED;
+    projectile.y += Math.sin(projectile.angle) * PROJECTILE_SPEED;
+    projectile.timeLeft -= delta;
 
     for (const player of players) {
-      if (player.id === snowball.playerId) continue;
+      if (player.id === projectile.playerId) continue;
 
       const distance = Math.sqrt(
-        ((player.x + PLAYER_SIZE / 2 - snowball.x) ** 2) +
-        ((player.y + PLAYER_SIZE / 2 - snowball.y) ** 2)
+        ((player.x + PLAYER_SIZE / 2 - projectile.x) ** 2) +
+        ((player.y + PLAYER_SIZE / 2 - projectile.y) ** 2)
       );
 
       if (distance <= PLAYER_SIZE / 2) {
-        player.x = 0;
-        player.y = 0; 
-        snowball.timeLeft = 0;
+        player.x = 80;
+        player.y = 100; 
+        projectile.timeLeft = 0;
         break;
       }
     }
   }
 
-  snowballs = snowballs.filter((snowball) => snowball.timeLeft > 0);
+  projectiles = projectiles.filter((projectile) => projectile.timeLeft > 0);
 
   io.emit("players", players);
-  io.emit("snowballs", snowballs)
+  io.emit("projectiles", projectiles)
 }
 
 const main = async () => {
@@ -142,13 +142,13 @@ const main = async () => {
       player.voiceId = voiceId;
     });
     
-    socket.on("snowballs", (angle) => {
+    socket.on("projectiles", (angle) => {
       const player = players.find((player) => player.id === socket.id);
 
-      snowballs.push({
+      projectiles.push({
         angle,
-        x: player.x ?? 0,
-        y: player.y ?? 0,
+        x: player.x ?? 400,
+        y: player.y ?? 400,
         timeLeft: 1000,
         playerId: socket.id,
       });

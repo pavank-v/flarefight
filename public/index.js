@@ -3,8 +3,8 @@ const santaImage = new Image();
 const speakerImage = new Image();
 const footStepAudio = new Audio("walking_sound.mp3");
 
-mapImage.src = "./snowy-sheet.png";
-santaImage.src = "./santa.png";
+mapImage.src = "./game_map.png";
+santaImage.src = "./player_image.png";
 speakerImage.src = "./speaker.png";
 
 const canvasEle = document.getElementById("canvas");
@@ -21,7 +21,7 @@ const PROJECTILE_RADIUS = 5;
 let groundMap = [[]];
 let decalMap = [[]];
 let players = [];
-let snowballs = [];
+let projectiles = [];
 let isPlaying = true;
 
 const inputs = {
@@ -67,8 +67,8 @@ socket.on("players", (serverPlayers) => {
 	players = serverPlayers;
 });
 
-socket.on("snowballs", (serverSnowballs) => {
-	snowballs = serverSnowballs;
+socket.on("projectiles", (serverProjectiles) => {
+	projectiles = serverProjectiles;
 });
 
 
@@ -162,7 +162,7 @@ window.addEventListener("click", (e) => {
 		e.clientX - canvasEle.width / 2
 	);
 
-	socket.emit("snowballs", angle);
+	socket.emit("projectiles", angle);
 });
 
 const loop = () => {
@@ -240,12 +240,12 @@ const loop = () => {
 		}
 	}
 
-	for (const snowball of snowballs) {
+	for (const projectile of projectiles) {
 		canvas.fillStyle = "#000000";
 		canvas.beginPath();
 		canvas.arc(
-			snowball.x - cameraX,
-			snowball.y - cameraY,
+			projectile.x - cameraX,
+			projectile.y - cameraY,
 			PROJECTILE_RADIUS,
 			0,
 			2 * Math.PI
