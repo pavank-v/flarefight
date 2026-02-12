@@ -149,10 +149,8 @@ window.addEventListener("keyup", (e) => {
 	else if (e.key === 'd' || e.key === "ArrowRight")
 		inputs["right"] = false;
 
-	if (isMoving()) {
-		footStepAudio.pause();
-		footStepAudio.currentTime = 0;
-	}
+	footStepAudio.pause();
+	footStepAudio.currentTime = 0;
 
 	socket.emit("inputs", inputs);
 });
