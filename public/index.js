@@ -6,6 +6,7 @@ const footStepAudio = new Audio("walking_sound.mp3");
 mapImage.src = "./game_map.png";
 santaImage.src = "./player_image.png";
 speakerImage.src = "./speaker.png";
+footStepAudio.loop = true;
 
 const canvasEle = document.getElementById("canvas");
 canvasEle.width = window.innerWidth;
@@ -30,11 +31,6 @@ const inputs = {
 	right: false,
 	left: false
 };
-
-const inputKeys = [
-	'a', 's', 'w', 'd', 
-	'ArrowLeft', 'ArrowDown', 'ArrowUp', 'ArrowRight'
-];
 
 const uid = Math.floor(Math.random() * 100000);
 
@@ -71,6 +67,9 @@ socket.on("projectiles", (serverProjectiles) => {
 	projectiles = serverProjectiles;
 });
 
+const isMoving = () => {
+	return inputs.left || inputs.right || inputs.up || inputs.down;
+};
 
 async function subscribe(user, mediaType) {
   await client.subscribe(user, mediaType);
@@ -132,9 +131,9 @@ window.addEventListener("keydown", (e) => {
 	else if (e.key === 'd' || e.key === "ArrowRight")
 		inputs["right"] = true;
 
-	if (inputKeys.includes(e.key)) {
-		footStepAudio.play()
+	if (isMoving() && footStepAudio.paused) {
 		footStepAudio.currentTime = 0;
+		footStepAudio.play();
 	}
 
 	socket.emit("inputs", inputs);
@@ -150,8 +149,10 @@ window.addEventListener("keyup", (e) => {
 	else if (e.key === 'd' || e.key === "ArrowRight")
 		inputs["right"] = false;
 
-	if (inputKeys.includes(e.key))
-		footStepAudio.pause()
+	if (isMoving()) {
+		footStepAudio.pause();
+		footStepAudio.currentTime = 0;
+	}
 
 	socket.emit("inputs", inputs);
 });
