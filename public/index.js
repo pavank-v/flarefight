@@ -15,7 +15,7 @@ canvasEle.width = window.innerWidth;
 canvasEle.height = window.innerHeight;
 
 const ctx = canvasEle.getContext('2d');
-const socket = io("ws://localhost:3000");
+const socket = io();
 
 const TILES_IN_ROW = 8;
 const TILE_SIZE = 32;
@@ -207,9 +207,10 @@ window.addEventListener("keyup", (e) => {
 window.addEventListener("click", (e) => {
   if (!gameStarted || gameState !== "playing") return;
 
+	const rect = canvasEle.getBoundingClientRect();
   const angle = Math.atan2(
-    e.clientY - canvasEle.height / 2,
-    e.clientX - canvasEle.width / 2
+    e.clientY - canvasEle.height / 2 - rect.left,
+    e.clientX - canvasEle.width / 2 - rect.top
   );
 
   socket.emit("projectiles", angle);
