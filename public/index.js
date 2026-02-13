@@ -1,11 +1,13 @@
 const mapImage = new Image();
-const santaImage = new Image();
+const playerImage = new Image();
 const speakerImage = new Image();
+const projectileImage = new Image();
 const footStepAudio = new Audio("walking_sound.mp3");
 
 mapImage.src = "./game_map.png";
-santaImage.src = "./player_image.png";
+playerImage.src = "./player_image.png";
 speakerImage.src = "./speaker.png";
+projectileImage.src = "./projectile_image.png";
 footStepAudio.loop = true;
 
 const canvasEle = document.getElementById("canvas");
@@ -218,7 +220,7 @@ const loop = () => {
 	}
 
 	for (const player of players) {
-		canvas.drawImage(santaImage, player.x - cameraX, player.y - cameraY);
+		canvas.drawImage(playerImage, player.x - cameraX, player.y - cameraY);
 
 		if (!player.isMuted) {
 			canvas.drawImage(speakerImage, player.x - cameraX + 5, player.y - cameraY - 28);
@@ -240,16 +242,11 @@ const loop = () => {
 	}
 
 	for (const projectile of projectiles) {
-		canvas.fillStyle = "#000000";
-		canvas.beginPath();
-		canvas.arc(
+		canvas.drawImage(
+			projectileImage,
 			projectile.x - cameraX,
 			projectile.y - cameraY,
-			PROJECTILE_RADIUS,
-			0,
-			2 * Math.PI
 		);
-		canvas.fill();
 	}
 
 	window.requestAnimationFrame(loop);
