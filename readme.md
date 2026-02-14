@@ -1,8 +1,10 @@
 # FlareFight
 
+[Check it out!!!](https://flarefight.onrender.com)
 A real-time multiplayer 2D battle arena game with proximity-based voice chat. Fight other players, score points, and become the champion!
 
-![Game Play](screenshots/game_play.png)
+**Play Now:**  
+👉 [Launch FlareFight](https://flarefight.onrender.com)
 
 ## Features
 
