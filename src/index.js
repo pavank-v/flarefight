@@ -117,6 +117,7 @@ const tick = (delta) => {
 
     for (const player of players) {
       if (player.id === projectile.playerId) continue;
+      if (player.x === 400 && player.y === 400) continue;
 
       const distance = Math.sqrt(
         ((player.x + PLAYER_SIZE / 2 - projectile.x) ** 2) +

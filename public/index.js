@@ -2,12 +2,12 @@ const mapImage = new Image();
 const playerImage = new Image();
 const speakerImage = new Image();
 const projectileImage = new Image();
-const footStepAudio = new Audio("walking_sound.mp3");
+const footStepAudio = new Audio("./assets/walking_sound.mp3");
 
-mapImage.src = "./game_map.png";
-playerImage.src = "./player_image.png";
-speakerImage.src = "./speaker.png";
-projectileImage.src = "./projectile_image.png";
+mapImage.src = "./assets/game_map.png";
+playerImage.src = "./assets/player_image.png";
+speakerImage.src = "./assets/speaker.png";
+projectileImage.src = "./assets/projectile_image.png";
 footStepAudio.loop = true;
 
 const canvasEle = document.getElementById("canvas");
